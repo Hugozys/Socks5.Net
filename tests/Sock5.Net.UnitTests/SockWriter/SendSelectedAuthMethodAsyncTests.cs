@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Threading.Tasks;
@@ -6,6 +5,7 @@ using FluentAssertions;
 using Sock5.Net.Pipe;
 using Xunit;
 using static Sock5.Net.UnitTests.TestHelper.PipeStream;
+using Sock5.Net.Common;
 
 namespace Sock5.Net.UnitTests
 {
@@ -20,8 +20,6 @@ namespace Sock5.Net.UnitTests
             var result = await pipe.Writer.SendSelectedAuthMethodAsync(authSet, new SockOption());
             result.Success.Should().BeTrue();
             result.Payload.Should().Be(expected[1]);
-            
-            var sockPipe = pipe as SockPipe;
             stream.Position = 0;
             var bytes = new byte[2];
             var read = await stream.ReadAsync(bytes);

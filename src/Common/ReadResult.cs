@@ -2,7 +2,7 @@ using System;
 
 namespace Sock5.Net.Common
 {
-    public enum ReadStatus
+    internal enum ReadStatus
     {
         Success,
 
@@ -11,7 +11,7 @@ namespace Sock5.Net.Common
         Failure
     }
 
-    readonly public struct StateReadResult
+    readonly internal struct StateReadResult
     {
         public ReadStatus Status { get; }
 
@@ -28,12 +28,12 @@ namespace Sock5.Net.Common
         }
     }
 
-    public static class StateReadResultHelper
+    internal static class StateReadResultHelper
     {
         public static StateReadResult ErrorResult(ErrorCode code) => new StateReadResult(ReadStatus.Failure, code);
     }
 
-    public static class StateReadResultExtension
+    internal static class StateReadResultExtension
     {
         public static SockResponse ToSockResponse(this StateReadResult state) => state.Status switch
         {

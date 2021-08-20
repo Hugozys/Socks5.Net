@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Collections.Immutable;
 
-namespace Sock5.Net
+namespace Sock5.Net.Common
 {
     public static class Constants
     {

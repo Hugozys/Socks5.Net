@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Sock5.Net.Common;
 using static Sock5.Net.UnitTests.TestHelper.PipeStream;
 using Xunit;
 
@@ -78,8 +79,5 @@ namespace Sock5.Net.UnitTests
             result.Success.Should().BeTrue();
             result.Payload.Count.Should().Be(3);
         }
-
-
-        
     }
 }

@@ -87,7 +87,7 @@ namespace Sock5.Net.Common
                         return SockResponseHelper.ErrorResult<T>(ErrorCode.InComplete);
                     }
                 } 
-                catch(System.Exception)
+                catch(Exception)
                 {
                     throw;
                 }

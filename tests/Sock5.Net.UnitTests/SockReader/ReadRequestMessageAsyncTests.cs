@@ -5,10 +5,8 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
-using Sock5.Net.Pipe;
 using Xunit;
 using static Sock5.Net.UnitTests.TestHelper.PipeStream;
-using static Sock5.Net.UnitTests.TestHelper.IPAddress;
 using Sock5.Net.Common;
 
 namespace Sock5.Net.UnitTests

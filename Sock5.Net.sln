@@ -9,6 +9,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{33141A7B
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sock5.Net.UnitTests", "tests\Sock5.Net.UnitTests\Sock5.Net.UnitTests.csproj", "{C4E1B47C-F26D-4162-82ED-49FB49D814C2}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{B98A6F81-5508-4F45-AC59-38A8659A3AA4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "tools\Server\Server.csproj", "{E9652A6F-DB98-4884-8BCE-F238F8085E57}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,8 +50,21 @@ Global
 		{C4E1B47C-F26D-4162-82ED-49FB49D814C2}.Release|x64.Build.0 = Release|Any CPU
 		{C4E1B47C-F26D-4162-82ED-49FB49D814C2}.Release|x86.ActiveCfg = Release|Any CPU
 		{C4E1B47C-F26D-4162-82ED-49FB49D814C2}.Release|x86.Build.0 = Release|Any CPU
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57}.Debug|x64.Build.0 = Debug|Any CPU
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57}.Debug|x86.Build.0 = Debug|Any CPU
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57}.Release|x64.ActiveCfg = Release|Any CPU
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57}.Release|x64.Build.0 = Release|Any CPU
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57}.Release|x86.ActiveCfg = Release|Any CPU
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{C4E1B47C-F26D-4162-82ED-49FB49D814C2} = {33141A7B-6E55-49D8-92E5-726D0820E304}
+		{E9652A6F-DB98-4884-8BCE-F238F8085E57} = {B98A6F81-5508-4F45-AC59-38A8659A3AA4}
 	EndGlobalSection
 EndGlobal

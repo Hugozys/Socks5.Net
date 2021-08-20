@@ -2,7 +2,7 @@ using System.Buffers;
 
 namespace Sock5.Net.Common
 {
-    public enum StateType
+    internal enum StateType
     {
         TRANSIT,
         DONE

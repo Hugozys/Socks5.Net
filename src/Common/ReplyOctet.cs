@@ -1,6 +1,6 @@
-namespace Sock5.Net
+namespace Sock5.Net.Common
 {
-    public enum ReplyOctet: byte
+    internal enum ReplyOctet: byte
     {
         Succeed,
         GeneralFailure,

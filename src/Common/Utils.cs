@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Sock5.Net.Common
 {
-    public static class Utils
+    internal static class Utils
     {
         public static async Task<SockResponse<IPAddress>> ResolveIPAddressAsync(byte addrType, byte[] address)
         {
@@ -34,9 +34,9 @@ namespace Sock5.Net.Common
             return SockResponseHelper.SuccessResult(ip);
         }
 
-        public static ReplyOctet ErrorCodeToReplyOctet(ErrorCode code) => code switch
+        internal static ReplyOctet ErrorCodeToReplyOctet(ErrorCode code) => code switch
         {
-            ErrorCode.InvalidCmd => ReplyOctet.CMDNotSupported,
+            ErrorCode.InvalidCmd or ErrorCode.UnsupportedCmd => ReplyOctet.CMDNotSupported,
             ErrorCode.UnreachableHost => ReplyOctet.HostUnreachable,
             _ => ReplyOctet.GeneralFailure
         };

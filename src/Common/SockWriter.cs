@@ -1,19 +1,24 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO.Pipelines;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Sock5.Net.Common
 {
     public class SockWriter
     {
         private readonly PipeWriter _pipeWriter;
+        private readonly ILogger<SockWriter> _logger;
 
         public SockWriter(PipeWriter writer)
         {
             _pipeWriter = writer ?? throw new ArgumentNullException(nameof(writer));
+            _logger = Sock.LoggerFactory?.CreateLogger<SockWriter>() ?? throw new ArgumentException("UnInitialized Sock.LoggerFactory"); ;
         }
 
          /*
@@ -39,12 +44,6 @@ namespace Sock5.Net.Common
             return response.ToGeneric(selected);
         }
 
-        // public async ValueTask<SockResponse> SendReplyByRequestMessage(SockResponse<RequestMessage> request, CancellationToken token = default)
-        // {
-
-        // }
-
-
         /*   +----+-----+-------+------+----------+----------+
          *   |VER | REP |  RSV  | ATYP | BND.ADDR | BND.PORT |
          *   +----+-----+-------+------+----------+----------+
@@ -54,16 +53,25 @@ namespace Sock5.Net.Common
         public ValueTask<SockResponse> SendErrorReplyByErrorCodeAsync(ErrorCode code, CancellationToken token = default)
         {
             var replyByte = (byte)Utils.ErrorCodeToReplyOctet(code);
-            var buffer = new byte[]{0x05, replyByte, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01};
+            var buffer = new byte[]{0x05, replyByte, 0x00, Constants.AddrType.IPV4, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01};
             return SendReplyAsync(buffer, token);
         }
         
         public ValueTask<SockResponse> SendSuccessReplyAsync(IPEndPoint? localEndpoint, CancellationToken token = default)
         {
            _ = localEndpoint ?? throw new ArgumentNullException(nameof(localEndpoint));
+
            var ip = localEndpoint.Address.GetAddressBytes();
+           var addrType = ip.Length == 4 ? Constants.AddrType.IPV4 : Constants.AddrType.IPV6;
+
            var port = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(localEndpoint.Port))[^2..];
-           var buffer = new byte[]{0x05, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01};
+
+           var buffer = new List<byte[]>
+           {
+               new byte[]{0x05, 0x00, 0x00, addrType},
+               ip, 
+               port
+           }.SelectMany(x => x).ToArray();
            return SendReplyAsync(buffer, token);
         }
 
@@ -72,6 +80,7 @@ namespace Sock5.Net.Common
             var sendBuffer = _pipeWriter.GetMemory(buffer.Length);
             buffer.CopyTo(sendBuffer);
             _pipeWriter.Advance(buffer.Length);
+            _logger.LogDebug("Sending {Bytes}", buffer.ToArray());
             var flushResult = await _pipeWriter.FlushAsync(token);
   
             if (flushResult.IsCanceled)

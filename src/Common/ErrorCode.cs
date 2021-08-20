@@ -1,4 +1,4 @@
-namespace Sock5.Net
+namespace Sock5.Net.Common
 {
     public enum ErrorCode
     {
@@ -6,6 +6,9 @@ namespace Sock5.Net
         InvalidNMethods,
         InComplete,
         InvalidCmd,
+        UnsupportedCmd,
+        UnsupportedAuth,
+        NotAllowedByRuleSet,
         InvalidRsv,
         InvalidAddrType,
         InvalidHostName,
