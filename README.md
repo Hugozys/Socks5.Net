@@ -1,2 +1,2 @@
-# Sock5.Net
-Implementation of Sock5 in .NET
+# Socks5.Net
+Implementation of Socks5 in .NET

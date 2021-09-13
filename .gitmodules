@@ -1,0 +1,3 @@
+[submodule "lib/NSec"]
+	path = lib/NSec
+	url = git@github.com:Hugozys/nsec.git
