@@ -17,7 +17,6 @@ namespace Socks5.Net.Security
         private class KeyExchange{}
         private static readonly Lazy<ILogger<KeyExchange>> _logger = new Lazy<ILogger<KeyExchange>>(() => Socks.LoggerFactory.CreateLogger<KeyExchange>());
         public const int ECDHPubKeySize = 32;
-        public const string LibInfo = "Socks5.NET";
         public const int SaltSize = 32;
 
         public const int NonceFixedFieldSize = 8;
@@ -34,12 +33,42 @@ namespace Socks5.Net.Security
             _ => GetServerCryptoStreamAsync(originalStream)
         };
 
+        /* Protocol
+        * client generates a key pair. It will be used for client's every connection
+        * For every connection, client sends 80 bytes to server
+        * - salt: 32 bytes
+        * - nonce1: 8 bytes
+        * - nonce2: 8 bytes
+        * - client pub key: 32 bytes
+        * 
+        * server generates a key pair. It will be used for server's every connection
+        * For every connection, server sends 32 bytes to client
+        * - server pub key: 32 bytes
+        *
+        * shared_secret = X25519(client_priv, server_public) = X25519(server_priv, client_public)
+        *
+        * In Xor mode
+        * seed1 = HKDFSha256(shared_secret, salt, nonce1, 4B)  (RFC-5869)
+        * seed2 = HKDFSha256(shared_secret, salt, nonce2, 4B)
+        * client->server:
+        * - client encrypts: output = Xor(input, Random(seed1))
+        * - server decrypts: output = Xor(input, Random(seed1))
+        * server->client:
+        * - server encrypts: output = Xor(input, Random(seed2))
+        * - client decrypts: output = Xor(input, Random(seed2))
+        *
+        * In Chacha20 mode
+        * shared_key = HKDFSha256(shared_secret, salt)
+        * client->server: stream operates on (shared_key, nonce1)
+        * server->client: stream operates on (shared_key, nonce2)
+        */
         public static Task<Stream> GetClientStreamAsync(NetworkStream originalStream, Mode mode) => mode switch
         {
             Mode.PlainText => Task.FromResult<Stream>(originalStream),
             Mode.Xor => GetClientRandomXORStreamAsync(originalStream),
             _ => GetClientCryptoStreamAsync(originalStream)
         };
+
         public static async Task<Stream> GetServerCryptoStreamAsync(NetworkStream originalStream)
         {
             var sharedCtx = await ServerKeyExchangeAsync(originalStream);

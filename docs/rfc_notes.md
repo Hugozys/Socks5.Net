@@ -5,7 +5,7 @@
 4. proxy server sends back a reply message with the ip address and port assosiated with the socket
 5. client sends the ip address and port which the proxy server is listening on to application server
 6. app server tries to connect to the proxy server with the ip address and port
-7. proxy server accepts and **ONLY** the connection coming from the specified ip address and port.
+7. proxy server accepts and **ONLY** accepts the connection coming from the specified ip address and port.
 8. Once the connection is established, proxy server sends back 2nd reply to client with the connected host's ip address and port
 
 # UDP ASSOCIATE

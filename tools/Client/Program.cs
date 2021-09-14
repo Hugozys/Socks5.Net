@@ -25,6 +25,7 @@ namespace Client
             rootCommand.Handler = CommandHandler.Create<string, int, int, bool, Mode>(Start);
             await rootCommand.InvokeAsync(args);
         }
+
         public static async Task Start(string hostname, int sockPort, int port, bool verbose, Mode mode)
         {
             Socks.SetLogLevel(verbose ? LogLevel.Info: LogLevel.Error);
