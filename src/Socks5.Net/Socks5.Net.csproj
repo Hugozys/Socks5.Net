@@ -3,6 +3,17 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
+    <Authors>Hugo Zhang</Authors>
+    <Version>0.1.0</Version>
+    <Title>Socks5.Net</Title>
+    <PackageProjectUrl>https://github.com/Hugozys/Socks5.Net</PackageProjectUrl>
+    <PackageTags>.Net5, Socks5, Proxy</PackageTags>
+    <PackageReleaseNotes>(Please write the package release notes in "../RELEASE-NOTES.txt")</PackageReleaseNotes>
+    <PackageOutputPath>../../publish</PackageOutputPath>
+    <Copyright>Copyright © 2021 Hugo Zhang, MIT License</Copyright>
+    <Description>This package partially implements Socks5 Protocol based on RFC-1928</Description>
+    <LicenseExpression>MIT</LicenseExpression>
   </PropertyGroup>
 
 <ItemGroup>
