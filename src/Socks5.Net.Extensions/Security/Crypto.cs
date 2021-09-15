@@ -9,13 +9,14 @@ using Microsoft.Extensions.Logging;
 using NSec.Cryptography;
 using NSec.Experimental;
 using Socks5.Net.Extensions.Security;
+using Socks5.Net.Logging;
 
 namespace Socks5.Net.Security
 {
     public static class Crypto
     {
         private class KeyExchange{}
-        private static readonly Lazy<ILogger<KeyExchange>> _logger = new Lazy<ILogger<KeyExchange>>(() => Socks.LoggerFactory.CreateLogger<KeyExchange>());
+        private static readonly Lazy<ILogger<KeyExchange>> _logger = new Lazy<ILogger<KeyExchange>>(() => Socks.LoggerFactory?.CreateLogger<KeyExchange>() ?? NoOpLogger<KeyExchange>.Instance);
         public const int ECDHPubKeySize = 32;
         public const int SaltSize = 32;
 

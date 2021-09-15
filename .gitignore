@@ -350,7 +350,9 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 
-# Nuget publish folder
+# build & publish artifacts
 publish/
 results/
 bin/
+package/
+fpush.sh
