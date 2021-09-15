@@ -22,23 +22,22 @@ jobs:
         dotnet-version: 5.0.x
     
     - name: Build
-      run: dotnet build -c release
+      run: dotnet build
 
     - name: Run unit tests
       run: |
-        dotnet test tests/Socks5.Net.UnitTests --no-restore -c release --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
-        dotnet test tests/Socks5.Net.Extensions.UnitTests --no-restore -c release --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
+        dotnet test tests/Socks5.Net.UnitTests --no-restore --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
+        dotnet test tests/Socks5.Net.Extensions.UnitTests --no-restore --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
     
     - name: Run integration tests
       run: |
-        dotnet test tests/Socks5.Net.IntegrationTests --no-restore -c release --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
+        dotnet test tests/Socks5.Net.IntegrationTests --no-restore --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
 
-    # - name: Upload test coverage result
-    #   uses: codecov/codecov-action@v2
-    #   with:
-    #     token: ${{ secrets.CODECOV_TOKEN }}
-    #     directory: ./results/**/*.xml
-    #     flags: unittests
-    #     name: codecov-umbrella
-    #     fail_ci_if_error: true
-    #     verbose: false
+    - name: Upload test coverage result
+      uses: codecov/codecov-action@v2
+      with:
+        directory: ./results
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+        verbose: false

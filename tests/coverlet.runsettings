@@ -6,7 +6,8 @@
         <Configuration>
           <Format>opencover</Format>
           <ResultsDirectory>../result</ResultsDirectory>
-          <ExcludeByFile>**/lib/NSec/*,</ExcludeByFile> <!-- Globbing filter -->
+          <ExcludeByFile>**/lib/NSec/**/*.cs</ExcludeByFile> <!-- Globbing filter -->
+          <IncludeDirectory>src/**/*.cs</IncludeDirectory>
           <SingleHit>false</SingleHit>
           <UseSourceLink>true</UseSourceLink>
           <IncludeTestAssembly>false</IncludeTestAssembly>

@@ -5,61 +5,31 @@ on:
     tags:
     - 'v*'
 jobs:
-  nuget:
-    name: publish nuget to nuget.org
-    runs-on: ubuntu-latest
-    outputs:
-       version: ${{ steps.toolversion.outputs.version }}
-    steps:
-    - name: Checkout source code
-      uses: actions/checkout@v2
-      with:
-        submodules: true
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v1
-      with:
-        dotnet-version: 5.0.x
-
-    - name: Get tool version
-      run: |
-        version=` grep '<Version>' < tools/Client/Client.csproj | sed 's/.*<Version>\(.*\)<\/Version>/\1/'`
-        echo "VERSION=$(echo -n ${version})" >> $GITHUB_ENV
-        echo "::set-output name=version::${version}"
-      id: toolversion
-
-    - name: Build
-      run: dotnet build -c release
-
-    - name: Run unit tests
-      run: |
-        dotnet test tests/Socks5.Net.UnitTests --no-restore -c release --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
-        dotnet test tests/Socks5.Net.Extensions.UnitTests --no-restore -c release --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
-    
-    - name: Run integration tests
-      run: |
-        dotnet test tests/Socks5.Net.IntegrationTests --no-restore -c release --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
-
-    - name: Push nuget package
-      run: |
-        dotnet nuget push "package/*.nupkg" -k ${API_KEY} -s https://api.nuget.org/v3/index.json
-      env:
-        API_KEY: ${{ secrets.GITHUB_TOKEN }}
-
-
   binary:
     name: release executable
-    needs: nuget
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [windows-latest, ubuntu-latest]
     steps:
     - name: Checkout source code
       uses: actions/checkout@v2
       with:
         submodules: true
+
+    - name: Get tool version on linux
+      run: |
+        version=` grep '<Version>' < tools/Client/Client.csproj | sed 's/.*<Version>\(.*\)<\/Version>/\1/'`
+        echo "VERSION=$(echo -n ${version})" >> $GITHUB_ENV
+      if: matrix.os == 'ubuntu-latest'
+
+    - name: Get tool version on windows
+      run: |
+        $xml = [Xml] (Get-Content tools/Client/Client.csproj)
+        $version = $xml.Project.PropertyGroup.Version
+        $GITHUB_ENV=$GITHUB_ENV + "VERSION=${version}"
+      if: matrix.os == 'windows-latest'
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
@@ -84,7 +54,7 @@ jobs:
         dotnet publish -c release tools/SocksServer/SocksServer.csproj -r linux-x64 --self-contained true -o ./bin -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
         ./bin/Client -h
         ./bin/SocksServer -h
-        mv ./bin/Client ./bin/sclient_linux-x64_${{ needs.nuget.outputs.version }}
+        mv ./bin/Client ./bin/sclient_linux-x64_${VERSION}
         mv ./bin/SocksServer ./bin/sserver_linux-x64_${VERSION}
       if: matrix.os == 'ubuntu-latest'
 
@@ -97,7 +67,7 @@ jobs:
         mv ./bin/Client.exe ./bin/sclient_win-x64_${{ needs.nuget.outputs.version }}.exe
         mv ./bin/SocksServer.exe ./bin/sserver_win-x64_${{ needs.nuget.outputs.version }}.exe
       if: matrix.os == 'windows-latest'
-        
+
     - name: Upload release assets for Linux
       uses: svenstaro/upload-release-action@v2
       if: matrix.os == 'ubuntu-latest'
@@ -107,6 +77,7 @@ jobs:
           tag: ${{ github.ref }}
           file_glob: true
           prerelease: true
+          overwrite: true
 
     - name: Upload release assets for Windows
       if: matrix.os == 'windows-latest'
@@ -117,3 +88,39 @@ jobs:
         tag: ${{ github.ref }}
         file_glob: true
         prerelease: true
+        overwrite: true
+
+  nuget:
+    name: publish nuget to nuget.org
+    needs: binary
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+
+    - name: Build
+      run: dotnet build -c release
+
+    - name: Run unit tests
+      run: |
+        dotnet test tests/Socks5.Net.UnitTests --no-restore -c release --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
+        dotnet test tests/Socks5.Net.Extensions.UnitTests --no-restore -c release --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
+    
+    - name: Run integration tests
+      run: |
+        dotnet test tests/Socks5.Net.IntegrationTests --no-restore -c release --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
+
+    - name: Push nuget package
+      run: |
+        dotnet nuget add source --username Hugozys --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/Hugozys/index.json"        
+        dotnet nuget push "package/*.nupkg" -k ${{ secrets.GITHUB_TOKEN }} -s github --skip-duplicate
+        dotnet nuget push "package/*.nupkg" -k ${API_KEY} -s https://api.nuget.org/v3/index.json --skip-duplicate
+      env:
+        API_KEY: ${{ secrets.NUGET_API_KEY }}

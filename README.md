@@ -1,4 +1,7 @@
 # Socks5.Net
+[![codecov](https://codecov.io/gh/hugozys/socks5.net/branch/master/graph/badge.svg?token=9NMY63UNFM)](https://codecov.io/gh/hugozys/socks5.net)
+![Socks5.Net](https://img.shields.io/nuget/v/Socks5.Net?label=Sock5.Net&style=flat-square)
+![Socks5.Net.Extensions](https://img.shields.io/nuget/v/Socks5.Net.Extensions?label=Socks5.Net.Extensions&style=flat-square)
 
 An Implementation of SOCKS Protocol Version 5 in .NET based on [RFC 1928](https://datatracker.ietf.org/doc/html/rfc1928). Note that the current implementation only supports `NoAuthentication` authentication negotiation and `Connect` command, but this should be sufficient for my daily interaction with browser and internet. It is only used for learning SOCKS Protocol Version 5.
 
