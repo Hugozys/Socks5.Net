@@ -7,13 +7,22 @@
     <Version>0.1.0</Version>
     <Title>Socks5.Net.Extensions</Title>
     <PackageProjectUrl>https://github.com/Hugozys/Socks5.Net</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Hugozys/Socks5.Net.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <PackageTags>.Net5, Socks5, Proxy, Cryptography, Chacha20</PackageTags>
     <PackageReleaseNotes>(Please write the package release notes in "../RELEASE-NOTES.txt")</PackageReleaseNotes>
-    <PackageOutputPath>../../publish</PackageOutputPath>
+    <PackageOutputPath>../../package</PackageOutputPath>
     <Copyright>Copyright © 2021 Hugo Zhang, MIT License</Copyright>
     <Description>This package provides an obfuscation layer for Socks5.Net</Description>
     <LicenseExpression>MIT</LicenseExpression>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="LICENSE.txt" Pack="true" Visible="false" PackagePath=""/>
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Socks5.Net\Socks5.Net.csproj" />
     <ProjectReference Include="..\..\lib\NSec\src\Cryptography\NSec.Cryptography.csproj"/>
