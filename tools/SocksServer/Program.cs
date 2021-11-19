@@ -26,7 +26,7 @@ namespace SocksServer
         public static async Task Start(Mode mode, int port, bool verbose)
         {
             Socks.SetLogLevel(verbose ? LogLevel.Info: LogLevel.Error);
-            var listener = new TcpListener(IPAddress.Parse("127.0.0.1"), port);
+            var listener = new TcpListener(IPAddress.Any, port);
             Console.WriteLine($"Listening on port {port}...");
             listener.Start();
             while (true)
