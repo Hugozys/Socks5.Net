@@ -19,11 +19,7 @@ namespace Socks5.Net.Security
         private static readonly Lazy<ILogger<KeyExchange>> _logger = new Lazy<ILogger<KeyExchange>>(() => Socks.LoggerFactory?.CreateLogger<KeyExchange>() ?? NoOpLogger<KeyExchange>.Instance);
         public const int ECDHPubKeySize = 32;
         public const int SaltSize = 32;
-
-        public const int NonceFixedFieldSize = 8;
-        public const int NonceCntSize = 4;
-
-        public const int NonceSize = NonceFixedFieldSize + NonceCntSize;
+        public const int NonceSize = 12;
 
         public const int Chacha20StreamBlockSize = 64;
 
@@ -36,10 +32,10 @@ namespace Socks5.Net.Security
 
         /* Protocol
         * client generates a key pair. It will be used for client's every connection
-        * For every connection, client sends 80 bytes to server
+        * For every connection, client sends 88 bytes to server
         * - salt: 32 bytes
-        * - nonce1: 8 bytes
-        * - nonce2: 8 bytes
+        * - nonce1: 12 bytes
+        * - nonce2: 12 bytes
         * - client pub key: 32 bytes
         * 
         * server generates a key pair. It will be used for server's every connection
@@ -133,15 +129,15 @@ namespace Socks5.Net.Security
             var clientKey = Key.Create(KeyAgreementAlgorithm.X25519);
             Debug.Assert(clientKey.Size == ECDHPubKeySize, $"Public Key Size SHOULD Be {ECDHPubKeySize}, But Found {clientKey.PublicKey.Size}");
             var clientPubKeyBytes = clientKey.PublicKey.Export(KeyBlobFormat.RawPublicKey);
-            var randomBytes = new byte[SaltSize + NonceFixedFieldSize*2];
+            var randomBytes = new byte[SaltSize + NonceSize*2];
             RandomGen.Value.GetBytes(randomBytes);            
             var sentBuffer = new List<byte>();
             sentBuffer.AddRange(randomBytes);
             sentBuffer.AddRange(clientPubKeyBytes);
             ReadOnlyMemory<byte> exchangeBytes = sentBuffer.ToArray();
             var saltBytes = exchangeBytes[..SaltSize].ToArray();
-            var ingressNonceBytes = exchangeBytes.Slice(SaltSize, NonceFixedFieldSize).ToArray();
-            var egressNonceBytes = exchangeBytes.Slice(SaltSize + NonceFixedFieldSize, NonceFixedFieldSize).ToArray();
+            var ingressNonceBytes = exchangeBytes.Slice(SaltSize, NonceSize).ToArray();
+            var egressNonceBytes = exchangeBytes.Slice(SaltSize + NonceSize, NonceSize).ToArray();
             _logger.Value.LogDebug($@"
             salt bytes: {string.Join(',',saltBytes)}
             ingress nonce bytes: {string.Join(',', ingressNonceBytes)}
@@ -176,7 +172,7 @@ namespace Socks5.Net.Security
             var serverKey = Key.Create(KeyAgreementAlgorithm.X25519);
             Debug.Assert(serverKey.Size == ECDHPubKeySize, $"Public Key Size SHOULD Be {ECDHPubKeySize}, But Found {serverKey.PublicKey.Size}");
 
-            Memory<byte> buffer = new byte[SaltSize + NonceFixedFieldSize*2 + ECDHPubKeySize ];
+            Memory<byte> buffer = new byte[SaltSize + NonceSize*2 + ECDHPubKeySize ];
             var readBuffer = buffer;
             _logger.Value.LogInformation("Reading Client Payload...");
             int remaining = buffer.Length;
@@ -191,9 +187,9 @@ namespace Socks5.Net.Security
                 remaining -= readBytes;
             }
             var saltBytes = buffer[..SaltSize].ToArray();
-            var ingressNonceBytes = buffer.Slice(SaltSize, NonceFixedFieldSize).ToArray();
-            var egressNonceBytes = buffer.Slice(SaltSize + NonceFixedFieldSize, NonceFixedFieldSize).ToArray();
-            var clientPubKeyBytes = buffer.Slice(SaltSize + 2*NonceFixedFieldSize, ECDHPubKeySize).ToArray();
+            var ingressNonceBytes = buffer.Slice(SaltSize, NonceSize).ToArray();
+            var egressNonceBytes = buffer.Slice(SaltSize + NonceSize, NonceSize).ToArray();
+            var clientPubKeyBytes = buffer.Slice(SaltSize + 2*NonceSize, ECDHPubKeySize).ToArray();
             _logger.Value.LogInformation($@"
             salt bytes: {string.Join(',',saltBytes)}
             IngressNonce bytes: {string.Join(',', ingressNonceBytes)}

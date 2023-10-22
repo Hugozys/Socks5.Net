@@ -16,10 +16,12 @@ namespace ChatServer
         public static async Task Main(string[] args)
         {
             Socks.SetLogLevel(LogLevel.Info);
-            var rootCommand = new RootCommand();
-            rootCommand.Add(new Option<Mode>(new []{"--mode", "-m"}, () => Mode.PlainText, "crypto mode to operate on"));
-            rootCommand.Add(new Option<int>(new []{"--port", "-p"}, () => 8080, "port on which the socks server will listen for traffic"));
-            rootCommand.Add(new Option<bool>(new []{"--verbose", "-v"}, () => false, "whether to use verbose logging"));
+            var rootCommand = new RootCommand
+            {
+                new Option<Mode>(new[] { "--mode", "-m" }, () => Mode.PlainText, "crypto mode to operate on"),
+                new Option<int>(new[] { "--port", "-p" }, () => 8080, "port on which the socks server will listen for traffic"),
+                new Option<bool>(new[] { "--verbose", "-v" }, () => false, "whether to use verbose logging")
+            };
             rootCommand.Handler = CommandHandler.Create<Mode, int, bool>(Start);
             await rootCommand.InvokeAsync(args);
         }
