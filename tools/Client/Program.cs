@@ -16,12 +16,14 @@ namespace Client
     {
         public static async Task Main(string[] args)
         {
-            var rootCommand = new RootCommand();
-            rootCommand.Add(new Option<Mode>(new []{"--mode", "-m"}, () => Mode.PlainText, "crypto mode to operate on"));
-            rootCommand.Add(new Option<int>(new []{"--port", "-p"}, () => 1080, "port on which the client will listen for forwarding traffic"));
-            rootCommand.Add(new Argument<string>("hostname", "host name of the socks server that the client will forward the traffic to"));
-            rootCommand.Add(new Option<int>(new []{"--sock-port", "-sp"}, () => 1080, "port on which the socks server is listening"));
-            rootCommand.Add(new Option<bool>(new []{"--verbose", "-v"}, () => false, "whether to use verbose logging"));
+            var rootCommand = new RootCommand
+            {
+                new Option<Mode>(new[] { "--mode", "-m" }, () => Mode.PlainText, "crypto mode to operate on"),
+                new Option<int>(new[] { "--port", "-p" }, () => 1080, "port on which the client will listen for forwarding traffic"),
+                new Argument<string>("hostname", "host name of the socks server that the client will forward the traffic to"),
+                new Option<int>(new[] { "--sock-port", "-sp" }, () => 1080, "port on which the socks server is listening"),
+                new Option<bool>(new[] { "--verbose", "-v" }, () => false, "whether to use verbose logging")
+            };
             rootCommand.Handler = CommandHandler.Create<string, int, int, bool, Mode>(Start);
             await rootCommand.InvokeAsync(args);
         }

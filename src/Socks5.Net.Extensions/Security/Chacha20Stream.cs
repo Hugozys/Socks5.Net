@@ -16,13 +16,13 @@ namespace Socks5.Net.Security
 
         private readonly Key _chachaKey;
 
-        private Nonce _ingress;
+        private Memory<byte> _ingress;
 
         private uint _inCounter;
 
         private int _inOffset;
 
-        private Nonce _egress;
+        private Memory<byte> _egress;
 
         private uint _outCounter;
 
@@ -49,21 +49,21 @@ namespace Socks5.Net.Security
             _baseStream = stream ?? throw new ArgumentNullException(nameof(stream));
             _chachaKey = chachaKey ?? throw new ArgumentNullException(nameof(chachaKey));
 
-            if (ingress.Length != Crypto.NonceFixedFieldSize)
+            if (ingress.Length != Crypto.NonceSize)
             {
-                throw new ArgumentException($"{nameof(ingress)} must be {Crypto.NonceFixedFieldSize} long");
+                throw new ArgumentException($"{nameof(ingress)} must be {Crypto.NonceSize} long");
             }
 
-            if (egress.Length != Crypto.NonceFixedFieldSize)
+            if (egress.Length != Crypto.NonceSize)
             {
-                throw new ArgumentException($"{nameof(egress)} must be {Crypto.NonceFixedFieldSize} long");
+                throw new ArgumentException($"{nameof(egress)} must be {Crypto.NonceSize} long");
             }
 
-            _ingress = new Nonce(ingress, Crypto.NonceCntSize);
+            _ingress = ingress.ToArray();
             _inCounter = 0;
             _inOffset = 0;
 
-            _egress = new Nonce(egress, Crypto.NonceCntSize);
+            _egress =  egress.ToArray();
             _outCounter = 0;
             _outOffset = 0;
 
@@ -81,23 +81,22 @@ namespace Socks5.Net.Security
             Span<byte> encrypted = stackalloc byte[buffer.Length];
             var readBytes = _baseStream.Read(encrypted);
             encrypted = encrypted[..readBytes];
-
             if (_inOffset != 0)
             {
-                int bytesToEndCipherBlock = (Crypto.Chacha20StreamBlockSize - _inOffset);
+                int bytesToEndCipherBlock = Crypto.Chacha20StreamBlockSize - _inOffset;
                 bool offsetOverflow = bytesToEndCipherBlock < readBytes;
                 int readTil = offsetOverflow ? bytesToEndCipherBlock : readBytes;
                 Span<byte> temp = stackalloc byte[Crypto.Chacha20StreamBlockSize];
 
                 encrypted[..readTil].CopyTo(temp.Slice(_inOffset));
-                StreamCipherAlgorithm.ChaCha20.XOrIC(_chachaKey, _ingress, temp, temp, _inCounter);
+                StreamCipherAlgorithm.ChaCha20.XOrIC(_chachaKey, _ingress.Span, temp, temp, _inCounter);
 
                 temp.Slice(_inOffset, readTil).CopyTo(buffer);
-                encrypted = encrypted.Slice(readTil);
-                buffer = buffer.Slice(readTil);
+                encrypted = encrypted[readTil..];
+                buffer = buffer[readTil..];
 
                 _inOffset = offsetOverflow ? 0 : _inOffset + readBytes;
-                if (offsetOverflow) { IncInCounter(); }
+                if (offsetOverflow) { IncCounter(ref _inCounter, _ingress); }
 
             }
             var bytes = encrypted.Length;
@@ -106,19 +105,19 @@ namespace Socks5.Net.Security
             {
                 StreamCipherAlgorithm.ChaCha20.XOrIC(
                     _chachaKey,
-                    _ingress,
+                    _ingress.Span,
                     encrypted[..Crypto.Chacha20StreamBlockSize],
                     buffer[..Crypto.Chacha20StreamBlockSize],
                     _inCounter);
 
-                IncInCounter();
-                buffer = buffer.Slice(Crypto.Chacha20StreamBlockSize);
-                encrypted = encrypted.Slice(Crypto.Chacha20StreamBlockSize);
+                IncCounter(ref _inCounter, _ingress);
+                buffer = buffer[Crypto.Chacha20StreamBlockSize..];
+                encrypted = encrypted[Crypto.Chacha20StreamBlockSize..];
             }
 
             StreamCipherAlgorithm.ChaCha20.XOrIC(
                     _chachaKey,
-                    _ingress,
+                    _ingress.Span,
                     encrypted,
                     buffer[..encrypted.Length],
                     _inCounter);
@@ -151,7 +150,7 @@ namespace Socks5.Net.Security
                 encrypted[..readTil].CopyTo(temp.Slice(_inOffset));
                 StreamCipherAlgorithm.ChaCha20.XOrIC(
                     _chachaKey,
-                    _ingress,
+                    _ingress.Span,
                     temp.Span,
                     temp.Span,
                     _inCounter);
@@ -161,7 +160,7 @@ namespace Socks5.Net.Security
                 buffer = buffer.Slice(readTil);
 
                 _inOffset = offsetOverflow ? 0 : _inOffset + readBytes;
-                if (offsetOverflow) { IncInCounter(); }
+                if (offsetOverflow) { IncCounter(ref _inCounter, _ingress); }
 
             }
             var bytes = encrypted.Length;
@@ -170,19 +169,19 @@ namespace Socks5.Net.Security
             {
                 StreamCipherAlgorithm.ChaCha20.XOrIC(
                     _chachaKey,
-                    _ingress,
+                    _ingress.Span,
                     encrypted[..Crypto.Chacha20StreamBlockSize].Span,
                     buffer[..Crypto.Chacha20StreamBlockSize].Span,
                     _inCounter);
 
-                IncInCounter();
+                IncCounter(ref _inCounter, _ingress);
                 buffer = buffer.Slice(Crypto.Chacha20StreamBlockSize);
                 encrypted = encrypted.Slice(Crypto.Chacha20StreamBlockSize);
             }
 
             StreamCipherAlgorithm.ChaCha20.XOrIC(
                     _chachaKey,
-                    _ingress,
+                    _ingress.Span,
                     encrypted.Span,
                     buffer[..encrypted.Length].Span,
                     _inCounter);
@@ -219,7 +218,7 @@ namespace Socks5.Net.Security
 
                 StreamCipherAlgorithm.ChaCha20.XOrIC(
                     _chachaKey,
-                    _egress,
+                    _egress.Span,
                     temp,
                     temp,
                     _outCounter);
@@ -229,7 +228,7 @@ namespace Socks5.Net.Security
                 buffer = buffer.Slice(writeTil);
 
                 _outOffset = offsetOverflow ? 0 : _outOffset + writeBytes;
-                if (offsetOverflow) { IncOutCounter(); }
+                if (offsetOverflow) { IncCounter(ref _outCounter, _egress); }
 
             }
 
@@ -239,19 +238,19 @@ namespace Socks5.Net.Security
             {
                 StreamCipherAlgorithm.ChaCha20.XOrIC(
                     _chachaKey,
-                    _egress,
+                    _egress.Span,
                     buffer[..Crypto.Chacha20StreamBlockSize],
                     writeBuffer[..Crypto.Chacha20StreamBlockSize],
                     _outCounter);
 
-                IncOutCounter();
+                IncCounter(ref _outCounter, _egress);
                 writeBuffer = writeBuffer.Slice(Crypto.Chacha20StreamBlockSize);
                 buffer = buffer.Slice(Crypto.Chacha20StreamBlockSize);
             }
 
             StreamCipherAlgorithm.ChaCha20.XOrIC(
                     _chachaKey,
-                    _egress,
+                    _egress.Span,
                     buffer,
                     writeBuffer,
                     _outCounter);
@@ -279,7 +278,7 @@ namespace Socks5.Net.Security
 
                 StreamCipherAlgorithm.ChaCha20.XOrIC(
                     _chachaKey,
-                    _egress,
+                    _egress.Span,
                     temp.Span,
                     temp.Span,
                     _outCounter);
@@ -290,7 +289,7 @@ namespace Socks5.Net.Security
 
                 _outOffset = offsetOverflow ? 0 : _outOffset + writeBytes;
 
-                if (offsetOverflow) { IncOutCounter(); }
+                if (offsetOverflow) { IncCounter(ref _outCounter, _egress); }
             }
 
             var bytes = buffer.Length;
@@ -299,19 +298,19 @@ namespace Socks5.Net.Security
             {
                 StreamCipherAlgorithm.ChaCha20.XOrIC(
                     _chachaKey,
-                    _egress,
+                    _egress.Span,
                     buffer[..Crypto.Chacha20StreamBlockSize].Span,
                     writeBuffer[..Crypto.Chacha20StreamBlockSize].Span,
                     _outCounter);
 
-                IncOutCounter();
+                IncCounter(ref _outCounter, _egress);
                 writeBuffer = writeBuffer.Slice(Crypto.Chacha20StreamBlockSize);
                 buffer = buffer.Slice(Crypto.Chacha20StreamBlockSize);
             }
 
             StreamCipherAlgorithm.ChaCha20.XOrIC(
                     _chachaKey,
-                    _egress,
+                    _egress.Span,
                     buffer.Span,
                     writeBuffer.Span,
                     _outCounter);
@@ -338,21 +337,15 @@ namespace Socks5.Net.Security
 
         public override void Flush() => _baseStream.Flush();
 
-        private void IncOutCounter()
-        {
-            ++_outCounter;
-            if (_outCounter == 0)
+        private static void IncCounter(ref uint counter, Memory<byte> nonce) {
+            ++counter;
+            if (counter == 0) 
             {
-                Nonce.TryIncrement(ref _egress);
-            }
-        }
-
-        private void IncInCounter()
-        {
-            ++_inCounter;
-            if (_inCounter == 0)
-            {
-                Nonce.TryIncrement(ref _ingress);
+                bool carry = true;
+                for (int i = 0; i < nonce.Length && carry; ++i){
+                    ++nonce.Span[i];
+                    carry = nonce.Span[i] == 0x00;
+                }
             }
         }
     }

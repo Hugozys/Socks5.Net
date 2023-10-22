@@ -86,10 +86,9 @@ namespace Socks5.Net.IntegrationTests
 
                 bytes.Should().Be(2);
                 var expected = new byte[]{0x05, 0x00};
-                var readBytes = buffer.ToArray();
                 buffer.ToArray().Should().BeEquivalentTo(expected);
                 
-                Memory<Byte> port = new byte[4];
+                Memory<byte> port = new byte[4];
                 var beInt = IPAddress.HostToNetworkOrder(8080);
                 BitConverter.TryWriteBytes(port.Span, beInt);
                 var portArray = port.ToArray();
