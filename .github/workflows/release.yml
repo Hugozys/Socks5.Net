@@ -5,32 +5,23 @@ on:
     tags:
     - 'v*'
 jobs:
-  binary:
+  build_release:
     name: release executable
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest]
+        include:
+          - os: ubuntu-latest
+            release_suffix: linux
+          - os: windows-latest
+            release_suffix: win
     steps:
     - name: Checkout source code
       uses: actions/checkout@v4
       with:
         submodules: true
-
-    - name: Get tool version on linux
-      run: |
-        version=` grep '<Version>' < tools/Client/Client.csproj | sed 's/.*<Version>\(.*\)<\/Version>/\1/'`
-        echo "VERSION=$(echo -n ${version})" >> $GITHUB_ENV
-      if: matrix.os == 'ubuntu-latest'
-
-    - name: Get tool version on windows
-      run: |
-        $xml = [Xml] (Get-Content tools/Client/Client.csproj)
-        $version = $xml.Project.PropertyGroup.Version
-        $GITHUB_ENV=$GITHUB_ENV + "VERSION=${version}"
-      if: matrix.os == 'windows-latest'
-
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
@@ -54,8 +45,8 @@ jobs:
         dotnet publish -c release tools/SocksServer/SocksServer.csproj -r linux-x64 --self-contained true -o ./bin -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
         ./bin/Client -h
         ./bin/SocksServer -h
-        mv ./bin/Client ./bin/sclient_linux-x64_${VERSION}
-        mv ./bin/SocksServer ./bin/sserver_linux-x64_${VERSION}
+        mv ./bin/Client ./bin/sclient_linux_x64_${{ github.ref_name }}
+        mv ./bin/SocksServer ./bin/sserver_linux_x64_${{ github.ref_name }}
       if: matrix.os == 'ubuntu-latest'
 
     - name: Publish self-contained binaries on windows
@@ -64,35 +55,22 @@ jobs:
         dotnet publish -c release tools/SocksServer/SocksServer.csproj -r win-x64 --self-contained true -o ./bin -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
         ./bin/Client.exe -h
         ./bin/SocksServer.exe -h
-        mv ./bin/Client.exe ./bin/sclient_win-x64_${VERSION}.exe
-        mv ./bin/SocksServer.exe ./bin/sserver_win-x64_${VERSION}.exe
+        mv ./bin/Client.exe ./bin/sclient_win_x64_${{ github.ref_name }}.exe
+        mv ./bin/SocksServer.exe ./bin/sserver_win_x64_${{ github.ref_name }}.exe
       if: matrix.os == 'windows-latest'
 
-    - name: Upload release assets for Linux
-      uses: svenstaro/upload-release-action@v2
-      if: matrix.os == 'ubuntu-latest'
+    - name: Upload release assets
+      uses: softprops/action-gh-release@v1
       with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./bin/*linux-x64*
-          tag: ${{ github.ref }}
-          file_glob: true
-          prerelease: true
-          overwrite: true
-
-    - name: Upload release assets for Windows
-      if: matrix.os == 'windows-latest'
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: ./bin/*win-x64*
-        tag: ${{ github.ref }}
-        file_glob: true
+        name: ${{ github.ref_name }}
+        draft: true
         prerelease: true
-        overwrite: true
+        files: |
+          ./bin/sclient_${{ matrix.release_suffix }}_x64_${{ github.ref_name }}*
+          ./bin/sserver_${{ matrix.release_suffix }}_x64_${{ github.ref_name }}*
 
   nuget:
     name: publish nuget to nuget.org
-    needs: binary
     runs-on: ubuntu-latest
     steps:
     - name: Checkout source code
