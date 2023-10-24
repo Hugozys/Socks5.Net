@@ -1,4 +1,4 @@
-name: CI to Docker and DigitalOcean
+name: Deploy socks server
 
 on: 
   push:

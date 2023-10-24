@@ -35,9 +35,9 @@ namespace SocksServer
             {
                 var client = await listener.AcceptTcpClientAsync();
                 Console.WriteLine("Received connection from client");
-                var cryptoStream = await Crypto.GetServerStreamAsync(client.GetStream(), mode);
                 _ = Task.Run(async () =>
                 {
+                    var cryptoStream = await Crypto.GetServerStreamAsync(client.GetStream(), mode);
                     using var sockConnect = Socks.CreateSock(cryptoStream);
                     await sockConnect.ServeAsync();
                 });
