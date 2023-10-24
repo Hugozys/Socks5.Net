@@ -19,6 +19,9 @@ namespace Socks5.Net.Command
         public async Task HandleAsync(SocksPipe pipe, RequestMessage message)
         {
             _logger.LogInformation("Handling connection command...");
+            if (message.AddrType == (byte)AddressType.Domain){
+                _logger.LogDebug("Perform DNS resolution on socks proxy server.");
+            }
             var resolved = await Utils.ResolveIPAddressAsync(message.AddrType, message.Host);
             if (!resolved.Success)
             {

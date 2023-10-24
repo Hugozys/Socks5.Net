@@ -30,13 +30,13 @@ namespace Socks5.Net.Common
         }
 
         public override StateReadResult DoRead(ref ReadOnlySequence<byte> sequence)
-        {
-            if (sequence.FirstSpan[0] != Constants.Version)
+        {   
+            var ver = sequence.FirstSpan[0];
+            sequence = sequence.Slice(sequence.GetPosition(1, sequence.Start));
+            if (ver != Constants.Version)
             {
                 return StateReadResultHelper.ErrorResult(ErrorCode.InvalidVersionNumber);
             }
-            sequence = sequence.Slice(sequence.GetPosition(1, sequence.Start));
-
             _sockReader.CurrentState = _next;
 
             return StateReadResult.SuccessResult;
@@ -52,13 +52,12 @@ namespace Socks5.Net.Common
 
         public override StateReadResult DoRead(ref ReadOnlySequence<byte> sequence)
         {
-            var span = sequence.FirstSpan;
-            if (span[0] == 0x00)
+            var nmethods = sequence.FirstSpan[0];
+            sequence = sequence.Slice(sequence.GetPosition(1, sequence.Start));
+            if (nmethods == 0x00)
             {
                 return StateReadResultHelper.ErrorResult(ErrorCode.InvalidNMethods);
-            }
-            var nmethods = span[0];
-            sequence = sequence.Slice(sequence.GetPosition(1, sequence.Start));
+            }            
             _sockReader.CurrentState = new MethodsState(nmethods, _sockReader);
 
             return StateReadResult.SuccessResult;
@@ -115,13 +114,11 @@ namespace Socks5.Net.Common
         public override StateReadResult DoRead(ref ReadOnlySequence<byte> sequence)
         {
             var cmd = sequence.FirstSpan[0];
+            sequence = sequence.Slice(sequence.GetPosition(1, sequence.Start));
             if (!Constants.CommandTypeByteSet.Contains(cmd))
             {
                 return StateReadResultHelper.ErrorResult(ErrorCode.InvalidCmd);
             }
-            sequence = sequence.Slice(sequence.GetPosition(1, sequence.Start));
-
-
             _sockReader.CurrentState = new RsvState(_sockReader);
             _sockReader.RequestBuilder.WithCmd(cmd);
             return StateReadResult.SuccessResult;
@@ -135,13 +132,13 @@ namespace Socks5.Net.Common
         }
 
         public override StateReadResult DoRead(ref ReadOnlySequence<byte> sequence)
-        {
-            if (sequence.FirstSpan[0] != Constants.Rsv)
+        {   
+            var rsv = sequence.FirstSpan[0];
+            sequence = sequence.Slice(sequence.GetPosition(1, sequence.Start));
+            if (rsv != Constants.Rsv)
             {
                 return StateReadResultHelper.ErrorResult(ErrorCode.InvalidRsv);
             }
-            sequence = sequence.Slice(sequence.GetPosition(1, sequence.Start));
-
             _sockReader.CurrentState = new AtypState(_sockReader);
 
             return StateReadResult.SuccessResult;
@@ -158,12 +155,11 @@ namespace Socks5.Net.Common
         public override StateReadResult DoRead(ref ReadOnlySequence<byte> sequence)
         {
             var addrType = sequence.FirstSpan[0];
+            sequence = sequence.Slice(sequence.GetPosition(1, sequence.Start));
             if (!Constants.AddressTypeByteSet.Contains(addrType))
             {
                 return StateReadResultHelper.ErrorResult(ErrorCode.InvalidAddrType);
             }
-            sequence = sequence.Slice(sequence.GetPosition(1, sequence.Start));
-
             _sockReader.RequestBuilder.WithAddrType(addrType);
             _sockReader.CurrentState = new DstAddrState(_sockReader, addrType);
             return StateReadResult.SuccessResult;
