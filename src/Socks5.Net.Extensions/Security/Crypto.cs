@@ -15,7 +15,7 @@ namespace Socks5.Net.Security
 {
     public static class Crypto
     {
-        private class KeyExchange{}
+        private class KeyExchange { }
         private static readonly Lazy<ILogger<KeyExchange>> _logger = new Lazy<ILogger<KeyExchange>>(() => Socks.LoggerFactory?.CreateLogger<KeyExchange>() ?? NoOpLogger<KeyExchange>.Instance);
         public const int ECDHPubKeySize = 32;
         public const int SaltSize = 32;
@@ -71,19 +71,19 @@ namespace Socks5.Net.Security
             var sharedCtx = await ServerKeyExchangeAsync(originalStream);
 
             var chachaKey = KeyDerivationAlgorithm.HkdfSha256.DeriveKey(
-                sharedCtx.Secret, 
-                sharedCtx.Salt, 
+                sharedCtx.Secret,
+                sharedCtx.Salt,
                 Span<byte>.Empty,
-                StreamCipherAlgorithm.ChaCha20, new KeyCreationParameters{ ExportPolicy = KeyExportPolicies.AllowPlaintextArchiving});
+                StreamCipherAlgorithm.ChaCha20, new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextArchiving });
             return new Chacha20Stream(originalStream, chachaKey, sharedCtx.IngressNonce, sharedCtx.EgressNonce);
         }
 
         public static async Task<Stream> GetClientCryptoStreamAsync(NetworkStream originalStream)
-        {   
+        {
             var sharedCtx = await ClientKeyExchangeAsync(originalStream);
             var chachaKey = KeyDerivationAlgorithm.HkdfSha256.DeriveKey(
-                sharedCtx.Secret, 
-                sharedCtx.Salt, 
+                sharedCtx.Secret,
+                sharedCtx.Salt,
                 Span<byte>.Empty,
                 StreamCipherAlgorithm.ChaCha20);
             return new Chacha20Stream(originalStream, chachaKey, sharedCtx.IngressNonce, sharedCtx.EgressNonce);
@@ -92,14 +92,14 @@ namespace Socks5.Net.Security
         public static async Task<Stream> GetClientRandomXORStreamAsync(NetworkStream originalStream)
         {
             var sharedCtx = await ClientKeyExchangeAsync(originalStream);
-            
+
             var (ingressSeed, egressSeed) = GetSeedFromSharedCtx(sharedCtx);
 
             return new RandomXORStream(originalStream, ingressSeed, egressSeed);
         }
 
         public static async Task<Stream> GetServerRandomXORStreamAsync(NetworkStream originalStream)
-        {   
+        {
             var sharedCtx = await ServerKeyExchangeAsync(originalStream);
             var (ingressSeed, egressSeed) = GetSeedFromSharedCtx(sharedCtx);
             return new RandomXORStream(originalStream, ingressSeed, egressSeed);
@@ -108,19 +108,19 @@ namespace Socks5.Net.Security
         private static (int ingressSeed, int egressSeed) GetSeedFromSharedCtx(SharedCtx sharedCtx)
         {
             var egressSeedBytes = KeyDerivationAlgorithm.HkdfSha256.DeriveBytes(
-                sharedCtx.Secret, 
-                sharedCtx.Salt, 
+                sharedCtx.Secret,
+                sharedCtx.Salt,
                 sharedCtx.EgressNonce,
                 sizeof(int));
 
             var ingressSeedBytes = KeyDerivationAlgorithm.HkdfSha256.DeriveBytes(
-                sharedCtx.Secret, 
-                sharedCtx.Salt, 
+                sharedCtx.Secret,
+                sharedCtx.Salt,
                 sharedCtx.IngressNonce,
                 sizeof(int));
             var egressSeed = BitConverter.ToInt32(egressSeedBytes);
             var ingressSeed = BitConverter.ToInt32(ingressSeedBytes);
-            _logger.Value.LogInformation($"egressSeed: {egressSeed}, ingressSeed: {ingressSeed}");
+            _logger.Value.LogDebug("egressSeed: {egressSeed}, ingressSeed: {ingressSeed}", egressSeed, ingressSeed);
             return (ingressSeed, egressSeed);
         }
 
@@ -129,8 +129,8 @@ namespace Socks5.Net.Security
             var clientKey = Key.Create(KeyAgreementAlgorithm.X25519);
             Debug.Assert(clientKey.Size == ECDHPubKeySize, $"Public Key Size SHOULD Be {ECDHPubKeySize}, But Found {clientKey.PublicKey.Size}");
             var clientPubKeyBytes = clientKey.PublicKey.Export(KeyBlobFormat.RawPublicKey);
-            var randomBytes = new byte[SaltSize + NonceSize*2];
-            RandomGen.Value.GetBytes(randomBytes);            
+            var randomBytes = new byte[SaltSize + NonceSize * 2];
+            RandomGen.Value.GetBytes(randomBytes);
             var sentBuffer = new List<byte>();
             sentBuffer.AddRange(randomBytes);
             sentBuffer.AddRange(clientPubKeyBytes);
@@ -138,19 +138,24 @@ namespace Socks5.Net.Security
             var saltBytes = exchangeBytes[..SaltSize].ToArray();
             var ingressNonceBytes = exchangeBytes.Slice(SaltSize, NonceSize).ToArray();
             var egressNonceBytes = exchangeBytes.Slice(SaltSize + NonceSize, NonceSize).ToArray();
-            _logger.Value.LogDebug($@"
-            salt bytes: {string.Join(',',saltBytes)}
-            ingress nonce bytes: {string.Join(',', ingressNonceBytes)}
-            egress nonce bytes bytes: {string.Join(',',egressNonceBytes)}
-            client pub key bytes: {string.Join(',', clientPubKeyBytes)}");
-            _logger.Value.LogInformation("Sending exchange info to server...");
+            _logger.Value.LogDebug(@"
+                salt bytes: {saltBytes}
+                ingress nonce bytes: {ingressNonce}
+                egress nonce bytes bytes: {egressNonce}
+                client pub key bytes: {clientpub}",
+                string.Join(',', saltBytes),
+                string.Join(',', ingressNonceBytes),
+                string.Join(',', egressNonceBytes),
+                string.Join(',', clientPubKeyBytes));
+
+            _logger.Value.LogDebug("Sending exchange info to server...");
             await originalStream.WriteAsync(exchangeBytes, default);
 
-            _logger.Value.LogInformation("Reading server exchange info...");
+            _logger.Value.LogDebug("Reading server exchange info...");
             Memory<byte> buffer = new byte[ECDHPubKeySize];
             var readBuffer = buffer;
             int remaining = buffer.Length;
-            while( remaining > 0 )
+            while (remaining > 0)
             {
                 int readBytes = await originalStream.ReadAsync(readBuffer);
                 if (readBytes == 0)
@@ -164,7 +169,7 @@ namespace Socks5.Net.Security
             _logger.Value.LogDebug($"Read bytes: {string.Join(',', serverPubKeyBytes)}");
             var serverPublicKey = PublicKey.Import(KeyAgreementAlgorithm.X25519, serverPubKeyBytes, KeyBlobFormat.RawPublicKey);
             var sharedSecret = KeyAgreementAlgorithm.X25519.Agree(clientKey, serverPublicKey) ?? throw new ArgumentException("Derived Null Shared Secret");
-            return new (sharedSecret, saltBytes, ingressNonceBytes, egressNonceBytes);
+            return new(sharedSecret, saltBytes, ingressNonceBytes, egressNonceBytes);
         }
 
         private static async Task<SharedCtx> ServerKeyExchangeAsync(NetworkStream originalStream)
@@ -172,11 +177,11 @@ namespace Socks5.Net.Security
             var serverKey = Key.Create(KeyAgreementAlgorithm.X25519);
             Debug.Assert(serverKey.Size == ECDHPubKeySize, $"Public Key Size SHOULD Be {ECDHPubKeySize}, But Found {serverKey.PublicKey.Size}");
 
-            Memory<byte> buffer = new byte[SaltSize + NonceSize*2 + ECDHPubKeySize ];
+            Memory<byte> buffer = new byte[SaltSize + NonceSize * 2 + ECDHPubKeySize];
             var readBuffer = buffer;
-            _logger.Value.LogInformation("Reading Client Payload...");
+            _logger.Value.LogDebug("Reading Client Payload...");
             int remaining = buffer.Length;
-            while(remaining > 0)
+            while (remaining > 0)
             {
                 int readBytes = await originalStream.ReadAsync(readBuffer);
                 if (readBytes == 0)
@@ -189,20 +194,25 @@ namespace Socks5.Net.Security
             var saltBytes = buffer[..SaltSize].ToArray();
             var ingressNonceBytes = buffer.Slice(SaltSize, NonceSize).ToArray();
             var egressNonceBytes = buffer.Slice(SaltSize + NonceSize, NonceSize).ToArray();
-            var clientPubKeyBytes = buffer.Slice(SaltSize + 2*NonceSize, ECDHPubKeySize).ToArray();
-            _logger.Value.LogInformation($@"
-            salt bytes: {string.Join(',',saltBytes)}
-            IngressNonce bytes: {string.Join(',', ingressNonceBytes)}
-            EgressNonce bytes: {string.Join(',',egressNonceBytes)}
-            client pub key bytes: {string.Join(',', clientPubKeyBytes)}");
+            var clientPubKeyBytes = buffer.Slice(SaltSize + 2 * NonceSize, ECDHPubKeySize).ToArray();
+
+            _logger.Value.LogDebug(@"
+                salt bytes: {salt}
+                IngressNonce bytes: {ingressNonce}
+                EgressNonce bytes: {egressNonce}
+                client pub key bytes: {clientPubKey}",
+                string.Join(',', saltBytes),
+                string.Join(',', ingressNonceBytes),
+                string.Join(',', egressNonceBytes),
+                string.Join(',', clientPubKeyBytes));
 
             var serverPubKeyBytes = serverKey.PublicKey.Export(KeyBlobFormat.RawPublicKey);
-            _logger.Value.LogInformation($"Sending server public key: {string.Join(',',serverPubKeyBytes)}");
+            _logger.Value.LogDebug("Sending server public key: {serverPubKey}", string.Join(',', serverPubKeyBytes));
             await originalStream.WriteAsync(serverPubKeyBytes);
 
             var clientPublicKey = PublicKey.Import(KeyAgreementAlgorithm.X25519, clientPubKeyBytes, KeyBlobFormat.RawPublicKey);
             var sharedSecret = KeyAgreementAlgorithm.X25519.Agree(serverKey, clientPublicKey) ?? throw new ArgumentException("Derived Null Shared Secret");
-            return new (sharedSecret, saltBytes, egressNonceBytes, ingressNonceBytes);
+            return new(sharedSecret, saltBytes, egressNonceBytes, ingressNonceBytes);
         }
 
         private readonly struct SharedCtx

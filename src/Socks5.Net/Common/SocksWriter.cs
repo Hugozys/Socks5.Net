@@ -52,10 +52,18 @@ namespace Socks5.Net.Common
          *   | 1  |  1  | X'00' |  1   | Variable |    2     |
          *   +----+-----+-------+------+----------+----------+
          */
-        public ValueTask<SocksResponse> SendErrorReplyByErrorCodeAsync(ErrorCode code, CancellationToken token = default)
+        public ValueTask<SocksResponse> SendErrorReplyByErrorCodeAsync(ErrorCode code, RequestMessage message, CancellationToken token = default)
         {
             var replyByte = (byte)Utils.ErrorCodeToReplyOctet(code);
-            var buffer = new byte[]{0x05, replyByte, 0x00, (byte)AddressType.IPV4, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01};
+            var addrType = message.AddrType switch { (byte)AddressType.IPV6 => (byte)AddressType.IPV6, _ => (byte)AddressType.IPV4};
+            var ip = message.AddrType switch { (byte)AddressType.IPV6 => new byte[16], _ => new byte[4]};
+            var buffer = new List<byte[]>
+            {
+                new byte[]{0x05, replyByte, 0x00},
+                new byte[]{addrType},
+                ip, 
+                new byte[2],
+            }.SelectMany(x => x).ToArray();
             return SendReplyAsync(buffer, token);
         }
         

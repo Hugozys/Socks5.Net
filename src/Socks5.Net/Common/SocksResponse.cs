@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Socks5.Net.Common
 {
@@ -50,6 +51,14 @@ namespace Socks5.Net.Common
             {
                 true => payload is null ? throw new ArgumentNullException(nameof(payload)) : SocksResponseHelper.SuccessResult(payload),
                 _ => SocksResponseHelper.ErrorResult<T>(response.Reason!.Value)
+            };
+        }
+
+        public static SocksResponse<U> ToGeneric<T, U>(this SocksResponse<T> response, U? payload = default) {
+            return response.Success switch 
+            {
+                true => payload is null ? throw new ArgumentException($"{nameof(response.Success)} MUST be false") : SocksResponseHelper.SuccessResult(payload),
+                _ => SocksResponseHelper.ErrorResult<U>(response.Reason!.Value)
             };
         }
     }

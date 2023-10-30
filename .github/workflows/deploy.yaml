@@ -61,27 +61,25 @@ jobs:
       run: |
         cat << EOF > user-data.sh
         #cloud-config
-    
         runcmd:
           - curl -fsSL https://get.docker.com -o get-docker.sh
           - sh get-docker.sh
-          - docker run --network host -d --name sserver --restart=unless-stopped ${{ secrets.DOCKER_HUB_USERNAME }}/sserver:${{ steps.tag.outputs.tag }}
         EOF
         doctl compute droplet create ${{ vars.DROPLET_ID }} \
             --size s-1vcpu-1gb \
             --image ubuntu-20-04-x64 \
-            --region nyc1 \
+            --region sgp1 \
             --ssh-keys "${{ secrets.DROPLET_SSH_PUBLIC_KEY_FINGERPRINT }}" \
             --user-data-file user-data.sh \
             --tag-names proxy \
             --wait
+        sleep 2m # wait for docker installation
         droplet_info=$(doctl compute droplet get ${{ vars.DROPLET_ID }} --format ID,Name,PublicIPv4 --no-header)
         droplet_ip=$(echo "$droplet_info" | awk '{ print $3 }')
         echo "::add-mask::$droplet_ip"
         echo "DROPLET_IP=$droplet_ip" >> "$GITHUB_ENV"
-
-    - name: Update Droplet
-      if: steps.get_droplet.outputs.status == '0'
+        
+    - name: Start Socks server
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ env.DROPLET_IP }}
@@ -91,4 +89,4 @@ jobs:
           docker stop sserver
           docker rm sserver
           docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/sserver:${{ steps.tag.outputs.tag }}
-          docker run --network host -d ${{ secrets.DOCKER_HUB_USERNAME }}/sserver:${{ steps.tag.outputs.tag }}
+          docker run --network host --name sserver -d ${{ secrets.DOCKER_HUB_USERNAME }}/sserver:${{ steps.tag.outputs.tag }} -u ${{ env.DROPLET_IP }}

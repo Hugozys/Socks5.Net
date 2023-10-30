@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net;
 using Microsoft.Extensions.Logging;
 using Socks5.Net.Logging;
 
@@ -22,6 +23,6 @@ namespace Socks5.Net
                             .AddConsole()
                             .SetMinimumLevel(level.ToLogLevel()));
         }
-        public static SocksConnection CreateSock(Stream stream, SocksOption? sockOption = null) => new(stream, sockOption ?? new SocksOption());
+        public static SocksConnection CreateSock(Stream stream, EndPoint remote, SocksOption? sockOption = null) => new(stream, remote, sockOption ?? new SocksOption());
     }
 }

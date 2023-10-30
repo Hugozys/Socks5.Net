@@ -4,13 +4,14 @@
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
     <Authors>Hugo Zhang</Authors>
-    <Version>0.3.0</Version>
+    <Version>0.4.0</Version>
     <Title>Socks5.Net.Extensions</Title>
     <PackageProjectUrl>https://github.com/Hugozys/Socks5.Net</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Hugozys/Socks5.Net.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>.Net7, Socks5, Proxy, Cryptography, Chacha20</PackageTags>
     <PackageReleaseNotes>
+0.4.0 - Support UDP Associaate
 0.3.0 - .NET 7
 0.2.0 - Added release notes
 0.1.0 - Initial release

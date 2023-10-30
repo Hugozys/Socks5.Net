@@ -10,7 +10,20 @@ namespace Socks5.Net.Common
         public const byte Version = 0x05;
 
         public const byte Rsv = 0x00;
-        
+
+        public const byte Frag = 0x00;
+
+        // RSV - 2 bytes
+        // FRAG - 1 byte
+        // AddrType - 1 byte
+        // Addrlen >= 1 byte
+        //  - IPV4 4 bytes
+        //  - IPV6 12 bytes
+        //  - Domain Name 1 + ? bytes
+        // Port - 2 bytes
+        public const int UDPHeaderMinLen = 7;
+
+        public const int UDPHeaderNoAddrMinLen = 4;
         public static readonly ImmutableDictionary<byte, string> ReplyCodes = new Dictionary<byte, string>
         {
             [(byte)ReplyOctet.Succeed] = "succeeded",
@@ -23,7 +36,7 @@ namespace Socks5.Net.Common
             [(byte)ReplyOctet.CMDNotSupported] = "Command not supported",
             [(byte)ReplyOctet.AddrTypeNotSupported] = "Address type not supported"
         }.ToImmutableDictionary();
-        
+
         public static readonly ImmutableHashSet<AuthenticationMethod> AuthenticationMethodEnumSet = Enum.GetValues<AuthenticationMethod>().Where(x => x is not AuthenticationMethod.NoAccept).ToImmutableHashSet();
         public static readonly ImmutableHashSet<byte> AuthenticationMethodByteSet = AuthenticationMethodEnumSet.Select(x => (byte)x).ToImmutableHashSet();
         public static readonly ImmutableHashSet<CommandType> CommandTypeEnumSet = Enum.GetValues<CommandType>().Where(x => x is not CommandType.Unsupported).ToImmutableHashSet();
