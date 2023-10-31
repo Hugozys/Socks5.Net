@@ -11,11 +11,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-2019, ubuntu-latest]
         include:
           - os: ubuntu-latest
             release_suffix: linux
-          - os: windows-latest
+          - os: windows-2019
             release_suffix: win
     steps:
     - name: Checkout source code
@@ -27,13 +27,18 @@ jobs:
       with:
         dotnet-version: 7.0.x
 
-    - name: Build Docker image
+    - name: Build Docker image on Linux
+      if: matrix.os == 'ubuntu-latest'
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ./tests/Dockerfile
         tags: test:latest
         load: true  # This is important for running the image locally in the next step
+    - name: Build Docker image on windows
+      if: matrix.os == 'windows-2019'
+      run: |
+        docker build -t test:latest -f ./tests/Dockerfile
     - name: Run tests
       run: |
         docker run -v ./results:/app/results --rm test:latest
@@ -96,6 +101,7 @@ jobs:
 
     - name: Push nuget package
       run: |
+        dotnet build -c release
         dotnet nuget add source --username Hugozys --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/Hugozys/index.json"        
         dotnet nuget push "package/*.nupkg" -k ${{ secrets.GITHUB_TOKEN }} -s github --skip-duplicate
         dotnet nuget push "package/*.nupkg" -k ${API_KEY} -s https://api.nuget.org/v3/index.json --skip-duplicate
