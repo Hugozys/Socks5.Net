@@ -41,7 +41,7 @@ jobs:
         docker build -t test:latest -f ./tests/Dockerfile .
     - name: Run tests
       run: |
-        docker run -v ./results:/app/results --rm test:latest
+        docker run --rm test:latest
   
     - name: Publish self-contained binaries on linux
       run: |
