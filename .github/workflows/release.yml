@@ -38,7 +38,7 @@ jobs:
     - name: Build Docker image on windows
       if: matrix.os == 'windows-2019'
       run: |
-        docker build -t test:latest -f ./tests/Dockerfile
+        docker build -t test:latest -f ./tests/Dockerfile .
     - name: Run tests
       run: |
         docker run -v ./results:/app/results --rm test:latest
