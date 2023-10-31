@@ -16,22 +16,17 @@ jobs:
       with:
         submodules: true
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
       with:
-        dotnet-version: 7.0.x
-    
-    - name: Build
-      run: dotnet build
+        context: .
+        file: ./tests/Dockerfile
+        tags: test:latest
+        load: true  # This is important for running the image locally in the next step
 
-    - name: Run unit tests
+    - name: Run tests
       run: |
-        dotnet test tests/Socks5.Net.UnitTests --no-restore --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
-        dotnet test tests/Socks5.Net.Extensions.UnitTests --no-restore --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
-    
-    - name: Run integration tests
-      run: |
-        dotnet test tests/Socks5.Net.IntegrationTests --no-restore --collect:"XPlat Code Coverage" --settings ./tests/coverlet.runsettings --results-directory ./results
+        docker run -v ./results:/app/results --rm test:latest
 
     - name: Upload test coverage result
       uses: codecov/codecov-action@v3

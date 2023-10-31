@@ -3,9 +3,14 @@
 ![Socks5.Net](https://img.shields.io/nuget/v/Socks5.Net?label=Sock5.Net&style=flat-square)
 ![Socks5.Net.Extensions](https://img.shields.io/nuget/v/Socks5.Net.Extensions?label=Socks5.Net.Extensions&style=flat-square)
 
-An Implementation of SOCKS Protocol Version 5 in .NET based on [RFC 1928](https://datatracker.ietf.org/doc/html/rfc1928). Note that the current implementation only supports `NoAuthentication` authentication negotiation and `Connect` command, but this should be sufficient for my daily interaction with browser and internet. It is only used for learning SOCKS Protocol Version 5.
+An Implementation of SOCKS Protocol Version 5 in .NET based on [RFC 1928](https://datatracker.ietf.org/doc/html/rfc1928). It is only used for learning SOCKS Protocol Version 5. The Socks5 library implementation is located in `Socks5.Net` project. A separate extension project `Socks5.Net.Extensions` provides several traffic obfuscation strategies.
 
-The Socks5 library implementation is located in `Socks5.Net` project. A separate extension project `Socks5.Net.Extensions` provides several traffic obfuscation strategies.
+# Supported Feature
+- `NoAuthentication` negotiation
+- `Connect` command
+- `UDPAssociate` command
+
+
 
 # Obfuscation Layer
 The extension project provides two obfuscation strategies:
@@ -48,8 +53,4 @@ Correspondingly, a sample socks server is also provided in `tools` which acts as
   - decrypt all the traffic from the port with `Chacha20` encryption algorithm 
   - serve incoming connection using SOCKS5 V5 Protocol
 # Build
-You need to have dotnet sdk 5.0 installed on your build machine and run
-
-`dotnet build .` 
-
-in the root directory
+You need to have dotnet sdk 7.0 installed on your build machine and run `dotnet build .`  in the root directory.

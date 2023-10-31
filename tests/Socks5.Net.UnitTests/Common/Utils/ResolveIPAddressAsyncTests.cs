@@ -38,7 +38,7 @@ namespace Socks5.Net.UnitTests.Common
             {
                 AddressType.Domain => Encoding.Default.GetBytes(payload),
                 AddressType.IPV4 => payload.Split('.').Select(x => Convert.ToByte(x)).ToArray(),
-                _ => payload.Split(':').SelectMany(x => new byte[] { Convert.ToByte(x.Substring(0, 2), 16), Convert.ToByte(x.Substring(2), 16) }).ToArray()
+                _ => payload.Split(':').SelectMany(x => new byte[] { Convert.ToByte(x[..2], 16), Convert.ToByte(x[2..], 16) }).ToArray()
             };
             var result = await Utils.ResolveIPAddressAsync((byte)type, bytes);
             result.Success.Should().BeTrue();

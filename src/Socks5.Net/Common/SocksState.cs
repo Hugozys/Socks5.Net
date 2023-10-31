@@ -217,7 +217,7 @@ namespace Socks5.Net.Common
                     span = span[..remaining];
                 }
                 span.CopyTo(domainSpan);
-                domainSpan = domainSpan.Slice(span.Length);
+                domainSpan = domainSpan[span.Length..];
                 remaining = remaining < segment.Length ? 0 : (remaining - segment.Length);
             } while (remaining != 0 && it.MoveNext());
 

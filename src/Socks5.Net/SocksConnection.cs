@@ -6,12 +6,18 @@ using Socks5.Net.Pipe;
 using Microsoft.Extensions.Logging;
 using System.IO;
 using Socks5.Net.Logging;
+using System.Net;
+using Socks5.Net.Common;
+using System.Threading;
+using System.ComponentModel;
 
 namespace Socks5.Net
 {
     public sealed class SocksConnection : IDisposable
     {
         private readonly Stream _stream;
+
+        private readonly EndPoint _remoteEndPoint;
 
         private readonly SocksOption _sockOption;
 
@@ -22,27 +28,28 @@ namespace Socks5.Net
             _stream?.Dispose();
         }
 
-        internal SocksConnection(Stream stream, SocksOption? sockOption = null)
+        internal SocksConnection(Stream stream, EndPoint remoteEndpoint, SocksOption? sockOption = default)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
+            _remoteEndPoint = remoteEndpoint;
             _sockOption = sockOption ?? new SocksOption();
             _logger = Socks.LoggerFactory?.CreateLogger<SocksConnection>() ?? NoOpLogger<SocksConnection>.Instance;
         }
 
-        public async Task ServeAsync()
+        public async Task ServeAsync(CancellationToken cancellationToken = default)
         {
 
             using var pipe = new SocksPipe(_stream);
             try
             {
-                _logger.LogInformation("Reading Sock v5 Authentication Methods...");
-                var authMResponse = await pipe.Reader.ReadAuthMethodsAsync();
+                _logger.LogDebug("Reading Sock v5 Authentication Methods...");
+                var authMResponse = await pipe.Reader.ReadAuthMethodsAsync(cancellationToken);
 
                 if (!authMResponse.Success)
                 {
                     return;
                 }
-                var selectMResponse = await pipe.Writer.SendSelectedAuthMethodAsync(authMResponse.Payload!, _sockOption);
+                var selectMResponse = await pipe.Writer.SendSelectedAuthMethodAsync(authMResponse.Payload!, _sockOption, cancellationToken);
                 if (!selectMResponse.Success || selectMResponse.Payload! == (byte)AuthenticationMethod.NoAccept)
                 {
                     _logger.LogError("No Acceptable Authentication Method");
@@ -63,13 +70,13 @@ namespace Socks5.Net
                     return;
                 }
 
-                _logger.LogInformation("Reading Sock v5 Request...");
-                var sockResponse = await pipe.Reader.ReadRequestMessageAsync();
+                _logger.LogDebug("Reading Sock v5 Request...");
+                var sockResponse = await pipe.Reader.ReadRequestMessageAsync(cancellationToken);
 
                 if (!sockResponse.Success)
                 {
                     _logger.LogError("Failed to read request payload. {Reason}", sockResponse.Reason);
-                    await pipe.Writer.SendErrorReplyByErrorCodeAsync(sockResponse.Reason!.Value);
+                    await pipe.Writer.SendErrorReplyByErrorCodeAsync(sockResponse.Reason!.Value, DummyRequestMessage.Instance, cancellationToken);
                     return;
                 }
 
@@ -78,10 +85,11 @@ namespace Socks5.Net
                 ICommandHandler handler = message.CmdType switch
                 {
                     (byte)CommandType.Connect => new ConnectCommandHandler(),
+                    (byte)CommandType.UDP => new UDPAssociateCommandHandler(_remoteEndPoint, _sockOption.UDPRelayAddr),
                     _ => new NotSupportedCommandHandler()
                 };
-                _logger.LogInformation("Handling Sock v5 Commands...");
-                await handler.HandleAsync(pipe, message);
+                _logger.LogDebug("Handling Sock v5 Commands...");
+                await handler.HandleAsync(pipe, message, cancellationToken);
             }
             catch (Exception ex)
             {

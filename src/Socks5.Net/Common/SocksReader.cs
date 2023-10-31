@@ -22,6 +22,8 @@ namespace Socks5.Net.Common
             _pipeReader = reader ?? throw new ArgumentNullException(nameof(reader));
         }
 
+        public PipeReader GetPipeReader() => _pipeReader;
+
         /*
          *  +----+----------+----------+
          *  |VER | NMETHODS | METHODS  |
@@ -29,10 +31,10 @@ namespace Socks5.Net.Common
          *  | 1  |    1     | 1 to 255 |
          *  +----+----------+----------+
          */
-        public ValueTask<SocksResponse<ImmutableHashSet<byte>>> ReadAuthMethodsAsync(CancellationToken token = default) 
+        public ValueTask<SocksResponse<ImmutableHashSet<byte>>> ReadAuthMethodsAsync(CancellationToken token = default)
             => ReadMessageAsync<ImmutableHashSet<byte>, AuthDoneState>(
-                new VersionState(this, nextState: new NMethodsState(this)), 
-                x => x.AuthMethods, 
+                new VersionState(this, nextState: new NMethodsState(this)),
+                x => x.AuthMethods,
                 token);
 
         /*
@@ -42,16 +44,16 @@ namespace Socks5.Net.Common
          *  | 1  |  1  | X'00' |  1   | Variable |    2     |
          *  +----+-----+-------+------+----------+----------+
          */
-        public ValueTask<SocksResponse<RequestMessage>> ReadRequestMessageAsync(CancellationToken token = default) 
+        public ValueTask<SocksResponse<RequestMessage>> ReadRequestMessageAsync(CancellationToken token = default)
             => ReadMessageAsync<RequestMessage, RequestMessageDoneState>(
-                new VersionState(this, nextState: new CmdState(this)), 
-                x => x.RequestMessage, 
+                new VersionState(this, nextState: new CmdState(this)),
+                x => x.RequestMessage,
                 token);
 
-        internal async ValueTask<SocksResponse<T>> ReadMessageAsync<T, U>(ISocksState initialState, Func<U, T> extractor, CancellationToken token) where U: DoneState
+        internal async ValueTask<SocksResponse<T>> ReadMessageAsync<T, U>(ISocksState initialState, Func<U, T> extractor, CancellationToken token) where U : DoneState
         {
             _currState = initialState;
-            while(true)
+            while (true)
             {
                 var readResult = await _pipeReader.ReadAsync(token);
 
@@ -63,7 +65,7 @@ namespace Socks5.Net.Common
                 var buffer = readResult.Buffer;
                 try
                 {
-                    while(true)
+                    while (true)
                     {
                         var status = ParseMethod(ref buffer, extractor, out var result);
 
@@ -86,19 +88,19 @@ namespace Socks5.Net.Common
                     {
                         return SocksResponseHelper.ErrorResult<T>(ErrorCode.InComplete);
                     }
-                } 
-                catch(Exception)
+                }
+                catch (Exception)
                 {
                     throw;
                 }
                 finally
                 {
                     _pipeReader.AdvanceTo(buffer.Start, buffer.End);
-                } 
+                }
             }
         }
 
-        private StateReadResult ParseMethod<T, U>(ref ReadOnlySequence<byte> sequence, Func<U, T> extractor, out T? result) where U: DoneState
+        private StateReadResult ParseMethod<T, U>(ref ReadOnlySequence<byte> sequence, Func<U, T> extractor, out T? result) where U : DoneState
         {
             result = default;
 
