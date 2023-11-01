@@ -5,17 +5,40 @@ on:
     tags:
     - 'v*'
 jobs:
+  test_release:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./tests/Dockerfile
+        tags: test:latest
+        build-args: "config=release"
+        load: true  # This is important for running the image locally in the next step
+
+    - name: Run tests
+      run: |
+        docker run --rm test:latest
+
   build_release:
     name: release executable
+    needs: test_release
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest]
         include:
           - os: ubuntu-latest
             release_suffix: linux
-          - os: windows-2019
+          - os: windows-latest
             release_suffix: win
     steps:
     - name: Checkout source code
@@ -26,23 +49,6 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 7.0.x
-
-    - name: Build Docker image on Linux
-      if: matrix.os == 'ubuntu-latest'
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./tests/Dockerfile
-        tags: test:latest
-        load: true  # This is important for running the image locally in the next step
-    - name: Build Docker image on windows
-      if: matrix.os == 'windows-2019'
-      run: |
-        docker build -t test:latest -f ./tests/Dockerfile .
-    - name: Run tests
-      run: |
-        docker run --rm test:latest
-  
     - name: Publish self-contained binaries on linux
       run: |
         dotnet publish -c release tools/Client/Client.csproj -r linux-x64 --self-contained true -o ./bin -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true

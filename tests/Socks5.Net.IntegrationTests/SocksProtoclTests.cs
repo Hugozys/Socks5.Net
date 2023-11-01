@@ -26,12 +26,12 @@ namespace Socks5.Net.IntegrationTests
         public async Task ClientSendEncryptedMessages_ServerShouldDecrptToSame(Mode mode)
         {
             var helloWorld = Encoding.Default.GetBytes("Hello World");
-
+            var target = new TcpListener(IPAddress.Parse("127.0.0.1"), mode switch { Mode.Xor => 9000, _ => 30000 });
+            target.Start();
             async Task server(CancellationToken cancellationToken = default)
             {
-                var target = new TcpListener(IPAddress.Parse("127.0.0.1"), mode switch { Mode.Xor => 9000, _ => 30000 });
-                target.Start();
-                var client = await target.AcceptTcpClientAsync(cancellationToken);
+
+                using var client = await target.AcceptTcpClientAsync(cancellationToken);
                 var stream = await Crypto.GetServerStreamAsync(client.GetStream(), mode);
                 Memory<byte> message = new byte[helloWorld.Length];
                 var bytes = await stream.ReadAsync(message, cancellationToken);
@@ -39,17 +39,14 @@ namespace Socks5.Net.IntegrationTests
                 message.ToArray().Should().BeEquivalentTo(helloWorld);
                 client.Close();
                 target.Stop();
-                client.Dispose();
             }
 
             async Task client(CancellationToken cancellationToken = default)
             {
-                TcpClient client;
-                client = new TcpClient("127.0.0.1", mode switch { Mode.Xor => 9000, _ => 30000 });
+                using var client = new TcpClient("127.0.0.1", mode switch { Mode.Xor => 9000, _ => 30000 });
                 var stream = await Crypto.GetClientStreamAsync(client.GetStream(), mode);
                 await stream.WriteAsync(helloWorld, cancellationToken);
                 client.Close();
-                client.Dispose();
             }
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
@@ -62,17 +59,23 @@ namespace Socks5.Net.IntegrationTests
             var helloWorld = Encoding.Default.GetBytes("Hello World");
             var ssPort = 60000;
             var sPort = 60002;
+
+            // start socks server
+            var sock = new TcpListener(IPAddress.Parse("127.0.0.1"), ssPort);
+            sock.Start();
+
+            // start remote host server
+            var target = new TcpListener(IPAddress.Parse("127.0.0.1"), sPort);
+            target.Start();
+
             async Task sockServer(CancellationToken cancellationToken = default)
             {
-                var sock = new TcpListener(IPAddress.Parse("127.0.0.1"), ssPort);
-                sock.Start();
-                var client = await sock.AcceptTcpClientAsync(cancellationToken);
+                using var client = await sock.AcceptTcpClientAsync(cancellationToken);
                 var stream = client.GetStream();
                 using var sockConnect = Socks.CreateSock(stream, stream.Socket.RemoteEndPoint!);
                 await sockConnect.ServeAsync(cancellationToken);
                 client.Close();
                 sock.Stop();
-                client.Dispose();
             }
 
             async Task sockClient(CancellationToken cancellationToken = default)
@@ -114,8 +117,6 @@ namespace Socks5.Net.IntegrationTests
 
             async Task targetHost(CancellationToken cancellationToken = default)
             {
-                var target = new TcpListener(IPAddress.Parse("127.0.0.1"), sPort);
-                target.Start();
                 using var client = await target.AcceptTcpClientAsync(cancellationToken);
                 var stream = client.GetStream();
                 Memory<byte> text = new byte[helloWorld.Length];
@@ -124,7 +125,6 @@ namespace Socks5.Net.IntegrationTests
                 text.ToArray().Should().BeEquivalentTo(helloWorld);
                 client.Close();
                 target.Stop();
-                client.Dispose();
             }
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
@@ -138,10 +138,15 @@ namespace Socks5.Net.IntegrationTests
             var ssPort = 60000;
             var cuPort = 63000;
             var ruPort = 65000;
+
+            // start socks server
+            var sock = new TcpListener(IPAddress.Parse("127.0.0.1"), ssPort);
+            sock.Start();
+
+            // 
             async Task sockServer(CancellationToken cancellationToken = default)
             {
-                var sock = new TcpListener(IPAddress.Parse("127.0.0.1"), ssPort);
-                sock.Start();
+
                 using var client = await sock.AcceptTcpClientAsync(cancellationToken);
                 var stream = client.GetStream();
                 using var sockConnect = Socks.CreateSock(

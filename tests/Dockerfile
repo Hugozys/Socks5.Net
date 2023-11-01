@@ -1,4 +1,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build-env
+ARG config=debug
+ENV CONFIG=${config}
 WORKDIR /app
 
 # Copy everything
@@ -7,5 +9,5 @@ COPY . ./
 
 RUN dotnet restore
 
-RUN dotnet build .
-ENTRYPOINT ["dotnet", "test", "--no-build", "--collect:\"XPlat Code Coverage\"", "--settings", "./tests/coverlet.runsettings", "--results-directory", "./results"]
+RUN dotnet build -c ${config} .
+ENTRYPOINT ["./tests/entrypoint.sh"]
